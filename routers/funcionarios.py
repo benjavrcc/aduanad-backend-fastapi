@@ -84,36 +84,36 @@ def ver_registros():
 # ============================
 @router.get("/expected-hourly/{fecha}")
 def expected_hourly(fecha: str):
-    """
-    Devuelve el valor esperado por hora.
-    Ahora usa TAMBIÉN los registros reales guardados temporalmente.
-    """
-
-    # Buscar valor esperado diario en CSV
     row = df_expected[df_expected["fecha"] == fecha]
     if row.empty:
-        return {"error": f"Fecha {fecha} no existe en el CSV"}
+        return {"error": f"Fecha {fecha} no existe"}
 
     daily_expected = int(row["E_dia"].values[0])
 
-    # Obtener registros reales de esa fecha
     clean_expired()
-    day_records = []
 
+    # Construir registros ponderados con viajeros
+    day_records = []
     for rec in TEMP_STORAGE.values():
         if rec["fecha"] == fecha:
-            day_records.append(rec["hora"])
+            day_records.append({
+                "hora": rec["hora"],
+                "viajeros": rec["cantidad"]
+            })
 
-    # Si no hay registros reales, usar datos inventados para prototipo
+    # Si no hay registros reales, usar baseline simple
     if not day_records:
-        day_records = ["08:30", "09:00", "09:45", "14:00", "14:20"]
+        day_records = [
+            {"hora": "08:00", "viajeros": 3},
+            {"hora": "09:00", "viajeros": 5},
+            {"hora": "14:00", "viajeros": 4}
+        ]
 
     hourly = distribute_expected_by_hour(day_records, daily_expected)
 
     return {
         "fecha": fecha,
         "E_dia": daily_expected,
-        "source": "memoria temporal (15 minutos)",
-        "registros_reales": day_records,
-        "expected_hourly": hourly
+        "expected_hourly": hourly,
+        "registros_reales": day_records
     }
