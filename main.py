@@ -1,6 +1,7 @@
 # main.py
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from routers import funcionarios
 
 app = FastAPI(
@@ -9,7 +10,28 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Registrar los routers
+# ======================================
+#  CORS: PERMITIR PETICIONES DESDE VERCE
+# ======================================
+
+origins = [
+    "https://funcionarios-seven.vercel.app",   # tu dashboard de funcionarios
+    "https://aduana-digital.vercel.app",        # si tienes el frontend viajeros en vercel
+    "*",                                        # OPCIONAL: permitir todo (útil en prototipo)
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,      # sitios permitidos
+    allow_credentials=True,
+    allow_methods=["*"],        # permitir GET, POST, PUT, etc
+    allow_headers=["*"],        # permitir cualquier header
+)
+
+# ============================
+# Registrar routers
+# ============================
+
 app.include_router(funcionarios.router, prefix="/funcionarios", tags=["funcionarios"])
 
 @app.get("/")
