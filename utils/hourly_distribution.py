@@ -1,40 +1,39 @@
 # utils/hourly_distribution.py
 
-from collections import Counter
-
-def distribute_expected_by_hour(day_records, daily_expected):
+def distribute_expected_by_hour(day_records, daily_expected, min_weight=1):
     """
-    day_records: lista de horas tipo ["08:30", "09:00", "09:45"]
-    daily_expected: entero E_dia desde el CSV
+    day_records: lista de dicts con {"hora": "HH:MM", "viajeros": X}
+       ejemplo:
+       [
+         {"hora": "08:30", "viajeros": 3},
+         {"hora": "09:00", "viajeros": 1},
+         {"hora": "09:45", "viajeros": 40}
+       ]
 
-    Retorna: { "08": 1200, "09": 1800, ... }
+    daily_expected: entero E_dia del CSV
+
+    min_weight: peso mínimo para TODAS las horas (default 1)
     """
 
-    if daily_expected is None or daily_expected <= 0:
+    # Inicializar todas las horas con peso mínimo
+    hour_weights = {str(h).zfill(2): min_weight for h in range(24)}
+
+    # Sumar pesos reales según viajeros
+    for rec in day_records:
+        hora = str(rec["hora"]).split(":")[0]
+        viajeros = rec["viajeros"]
+        hour_weights[hora] += viajeros
+
+    # Calcular total de peso
+    total_weight = sum(hour_weights.values())
+
+    if total_weight == 0:
         return {}
-
-    if not day_records:
-        return {}
-
-    # Extraer solo la hora (HH) de cada registro
-    hours = []
-    for h in day_records:
-        h_str = str(h)
-        hour_only = h_str.split(":")[0]  # Ej: "08:30" → "08"
-        hours.append(hour_only)
-
-    # Contar cuántos registros hay por hora
-    counts = Counter(hours)  # Ej: {"09": 2, "08": 1}
-
-    total_records = sum(counts.values())
-    if total_records == 0:
-        return {}
-
-    hourly_expectation = {}
 
     # Distribución proporcional
-    for hour, cnt in counts.items():
-        proportion = cnt / total_records
+    hourly_expectation = {}
+    for hour, weight in hour_weights.items():
+        proportion = weight / total_weight
         hourly_expectation[hour] = round(daily_expected * proportion)
 
     return hourly_expectation
